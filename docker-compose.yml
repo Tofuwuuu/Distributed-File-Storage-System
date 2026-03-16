@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: dfs
+      POSTGRES_USER: dfs_user
+      POSTGRES_PASSWORD: dfs_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  coordinator:
+    build:
+      context: ./coordinator
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://dfs_user:dfs_password@db:5432/dfs
+      CHUNK_SIZE_BYTES: 1048576
+      REPLICATION_FACTOR: 2
+    depends_on:
+      - db
+      - storage1
+      - storage2
+    ports:
+      - "8000:8000"
+
+  storage1:
+    build:
+      context: ./storage_node
+      dockerfile: Dockerfile
+    environment:
+      NODE_ID: storage1
+      DATA_DIR: /data
+    volumes:
+      - ./data/storage1:/data
+    ports:
+      - "8101:8000"
+
+  storage2:
+    build:
+      context: ./storage_node
+      dockerfile: Dockerfile
+    environment:
+      NODE_ID: storage2
+      DATA_DIR: /data
+    volumes:
+      - ./data/storage2:/data
+    ports:
+      - "8102:8000"
+
+volumes:
+  db_data:
+
